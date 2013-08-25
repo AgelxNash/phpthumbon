@@ -8,8 +8,8 @@
  * @category images
  * @license GNU General Public License (GPL), http://www.gnu.org/copyleft/gpl.html
  * @author Agel_Nash <Agel_Nash@xaker.ru>
- * @date 02.08.2013
- * @version 1.0.
+ * @date 25.08.2013
+ * @version 1.0.1
  *
  */
 /**
@@ -25,7 +25,7 @@ set_time_limit(0);
 /* set package defines */
 define('PKG_NAME','phpThumbOn');
 define('PKG_NAME_LOWER',strtolower(PKG_NAME));
-define('PKG_VERSION','1.0.0');
+define('PKG_VERSION','1.0.1');
 define('PKG_RELEASE','pl');
 
 /* override with your own defines here (see build.config.sample.php) */

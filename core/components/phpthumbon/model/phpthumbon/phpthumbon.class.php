@@ -8,8 +8,8 @@
  * @category images
  * @license GNU General Public License (GPL), http://www.gnu.org/copyleft/gpl.html
  * @author Agel_Nash <Agel_Nash@xaker.ru>
- * @date 02.08.2013
- * @version 1.0.0
+ * @date 25.08.2013
+ * @version 1.0.1
  * @package phpThumbOn
  *
  * I love chaining:-)
@@ -139,6 +139,10 @@ class phpThumbOn {
         //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $flag = true;
 
+		if(!empty($this->_config['input'])){
+			$this->_config['input'] = preg_replace("#^/#","",$this->_config['input']);
+		}
+		
         if(!isset($this->_config['ext']) || !self::ALLOWED_EXT($this->_config['ext'])){
             $this->_config['ext'] = self::DEFAULT_EXT;
             $flag = false;
