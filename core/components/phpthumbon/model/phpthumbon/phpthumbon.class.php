@@ -266,7 +266,9 @@ class phpThumbOn {
             $full_assets = $this->_config['assetsPath'];
             $assets = ltrim($this->_config['assetsUrl'],'/');
             $imgDir = $this->_config['imagesFolder'];
-            $this->_config['relativePath'] = preg_replace("#^({$full_assets}|(/)?{$assets})(/)?{$imgDir}(/)?#", '', $this->_pathinfo('dirname'));
+			
+            $this->_config['relativePath'] = preg_replace("#^({$full_assets}|(/)?{$assets})?#", '', $this->_pathinfo('dirname'));
+			$this->_config['relativePath'] = preg_replace("#^(/)?{$imgDir}(/)?#","",$this->_config['relativePath']);
         }else{
             if($this->_flag = file_exists($this->_config['noimage'])){
                 $this->_config['input'] = $this->_config['noimage'];
