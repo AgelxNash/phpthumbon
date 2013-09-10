@@ -139,9 +139,12 @@ class phpThumbOn {
         //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $flag = true;
 
-		if(!empty($this->_config['input'])){
-			$this->_config['input'] = preg_replace("#^/#","",$this->_config['input']);
-		}
+        if(!empty($this->_config['input'])){
+            $this->_config['input'] = preg_replace("#^/#","",$this->_config['input']);
+            if (strpos($this->_config['input'], MODX_BASE_PATH) === false) {
+                $this->_config['input'] = MODX_BASE_PATH . $this->_config['input'];
+            }
+        }
 		
         if(!isset($this->_config['ext']) || !self::ALLOWED_EXT($this->_config['ext'])){
             $this->_config['ext'] = self::DEFAULT_EXT;
@@ -262,7 +265,7 @@ class phpThumbOn {
         //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if(!(empty($this->_config['input']) || !is_scalar($this->_config['input']))
             && !preg_match("/^http(s)?:\/\/\w+/",$this->_config['input'])
-            && file_exists(MODX_BASE_PATH . $this->_config['input'])){
+            && file_exists($this->_config['input'])){
             $full_assets = $this->_config['assetsPath'];
             $assets = ltrim($this->_config['assetsUrl'],'/');
             $imgDir = $this->_config['imagesFolder'];
