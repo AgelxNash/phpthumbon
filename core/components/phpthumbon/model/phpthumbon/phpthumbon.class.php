@@ -40,6 +40,9 @@ class phpThumbOn {
     /** тип файла по умолчанию */
     const DEFAULT_EXT = 'jpeg';
 
+    /** Класс очереди */
+    const QueueClass = 'QueueThumb';
+
     /** @var array константа */
     private static $ALLOWED_EXT = array(
         'jpg'=>true,
@@ -75,7 +78,6 @@ class phpThumbOn {
      * @access public
      */
     public function __construct(modX $modx, array $config = array()) {
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $this->modx = &$modx;
 
         $corePath = $this->modx->getOption('phpthumbon.core_path',array(),$this->modx->getOption('core_path').'components/phpthumbon/');
@@ -112,6 +114,12 @@ class phpThumbOn {
             //Права на только что созданный файл
             'new_file_permissions' => (int)$this->modx->getOption('new_file_permissions',$this->_config,'0664'),
 
+            //Очередь
+            'queue' => $this->modx->getOption('phpthumbon.queue', $this->_config, 0),
+
+            //Класс очереди
+            'queueClassPath' => $this->modx->getOption('phpthumbon.queue_classpath', $this->_config, trim($corePath,'/').'/queue/QueueThumb.class.php'),
+
             // картинки нет
             'noimage' => $this->modx->getOption('phpthumbon.noimage', $this->_config, trim($assetsUrl,'/').'/components/phpthumbon/noimage.jpg')
         ),$config);
@@ -120,21 +128,54 @@ class phpThumbOn {
         $this->_cfg['input'] = null;
 
         $this->_validateConfig();
+    }
 
+    /**
+     * Загрузка ресайзера и сжатие картинки
+     * @param $from оригинальная картинка
+     * @param $to куда сохранять
+     * @return bool
+     */
+    public function loadResizer($from, $to){
+        $out = false;
         if (!$this->modx->loadClass('phpthumb',$this->modx->getOption('core_path').'model/phpthumb/',true,true)) {
             $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not load phpthumb class');
             $this->_flag = false;
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
-    }
+        if($this->_flag){
+            $this->_phpThumb = new phpthumb();
+            $this->_phpThumb->setSourceFilename($from);
+            $this->saveOptions();
 
+            // Пробуем создать превьюху
+            if ($this->_phpThumb->GenerateThumbnail()){
+                // Сохраняем превьюху в кеш-файл
+                $new = true;
+                $this->_phpThumb->RenderToFile($to);
+                $out = $to;
+            }else{
+                $new = false;
+                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not generate thumbnail');
+            }
+
+            // Отдаем имя превьюхи предварительно заменив абсолютный путь на относительный
+            if($out){
+                if($new){
+                    chmod($this->_config['_cacheFileName'], octdec($this->_config['new_file_permissions']));
+                }
+            }
+        }
+        return $out;
+    }
+    public function getOption($key, $default = null){
+        return (is_scalar($key) && isset($this->_config[$key])) ? $this->_config[$key] : $default;
+    }
     /**
      * Проверка и исправление настроек по умолчанию
      *
      * @return bool были ли ошибки в конфигурации по умолчанию
      */
     private function _validateConfig(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $flag = true;
 
         if(!empty($this->_config['input'])){
@@ -153,7 +194,6 @@ class phpThumbOn {
             $this->_config['quality'] = self::DEFAULT_QUALITY;
             $flag = false;
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $flag;
     }
     /**
@@ -164,12 +204,10 @@ class phpThumbOn {
      * @return bool статус обновления конфигов
      */
     private function _setConfig($options = array()){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if($flag = (is_array($options) && array()!=$options)){
             $this->_config = array_merge($this->_cfg,$options);
             $this->_validateConfig();
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $flag;
     }
 
@@ -181,23 +219,18 @@ class phpThumbOn {
      * @return string имя файла с превьюхой или пустая строка
      */
     public function run($options = array()){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $this->_setConfig($options);
         if($this->_flag){
-            $this->_phpThumb = new phpthumb();
-
             $out = $this->relativeSrcPath()
                 ->makeCacheDir()
                 ->makeOptions()
                 ->checkOptions()
-                ->saveOptions()
                 ->getCacheFileName()
                 ->getThumb();
         }else{
             $out = '';
         }
         $this->flush();
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $out;
     }
 
@@ -208,11 +241,8 @@ class phpThumbOn {
      * @return $this
      */
     public function checkOptions(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $this->checkExt()
-            ->checkQuality()
-            ->setImage();
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
+            ->checkQuality();
         return $this;
     }
 
@@ -223,7 +253,6 @@ class phpThumbOn {
      * @return $this
      */
     public function makeCacheDir(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         $exists = false;
         $this->_config['_cachePath'] = $this->_config['cacheDir'].'/'.$this->_config['relativePath'];
 
@@ -233,22 +262,8 @@ class phpThumbOn {
             }
         }
         if($this->_flag && !$exists){
-            $this->modx->getService('fileHandler','modFileHandler');
-            $dir = $this->modx->fileHandler->make($this->_config['_cachePath'], array(),'modDirectory');
-            if(!is_object($dir) || !($dir instanceof modDirectory)) {
-                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not get class modDirectory');
-                $this->_cacheDir[$this->_config['_cachePath']] = $this->_flag = false;
-            }
-            if($this->_flag){
-                if(is_dir($this->_config['_cachePath']) || $dir->create()){
-                    $this->_cacheDir[$this->_config['_cachePath']] = true;
-                }else{
-                    $this->_cacheDir[$this->_config['_cachePath']] = $this->_flag = false;
-                    $this->modx->log(modX::LOG_LEVEL_ERROR, "[phpthmbon] Could not create cache directory ".$this->_config['_cachePath']);
-                }
-            }
+            $this->_cacheDir[$this->_config['_cachePath']] = $this->_flag = $this->makeDir($this->_config['_cachePath']);
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
@@ -260,7 +275,6 @@ class phpThumbOn {
      * @return $this
      */
     public function relativeSrcPath(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if(!(empty($this->_config['input']) || !is_scalar($this->_config['input']))
             && !preg_match("/^http(s)?:\/\/\w+/",$this->_config['input'])
             && file_exists($this->_config['input'])){
@@ -277,8 +291,6 @@ class phpThumbOn {
                 $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Input image path is empty');
             }
         }
-
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
@@ -286,15 +298,14 @@ class phpThumbOn {
      * Чтобы не дергать постоянно файл который обрабатываем
      *
      * @access private
+     * @param string $name ключ
      * @return string информация из pathinfo о обрабатываемом файле input
      */
     private function _pathinfo($name){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if(empty($this->_fileInfo)){
             $this->_fileInfo = pathinfo($this->_config['input']);
         }
         $out = is_scalar($name) && isset($this->_fileInfo[$name]) ? $this->_fileInfo[$name] : '';
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $out;
     }
 
@@ -305,7 +316,6 @@ class phpThumbOn {
      * @return $this
      */
     public function makeOptions(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if($this->_flag){
             $eoptions = is_array($this->_config['options']) ? $this->_config['options'] : explode('&',$this->_config['options']);
             $this->_config['_options'] = array();
@@ -324,8 +334,11 @@ class phpThumbOn {
                     }
                 }
             }
+            //Параметр src игнорируется. Мы работаем только с input
+            if(!empty($this->_config['_options']['src'])){
+                unset($this->_config['_options']['src']);
+            }
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
@@ -336,13 +349,11 @@ class phpThumbOn {
      * @return $this
      */
     public function checkExt(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if ($this->_flag && empty($this->_config['_options']['f'])){
             $ext = $this->_pathinfo('extension');
             $ext = strtolower($ext);
             $this->_config['_options']['f'] = self::ALLOWED_EXT($ext) ? $ext : $this->_config['ext'];
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
@@ -353,29 +364,9 @@ class phpThumbOn {
      * @return $this
      */
     public function checkQuality(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if($this->_flag && empty($this->_config['_options']['q'])){
             $this->_config['_options']['q'] = $this->_config['quality'];
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
-        return $this;
-    }
-
-    /**
-     * Если вдруг передан параметр src - то игнорируем его, т.к. у нас единственный и основной должен быть input
-     *
-     * @access public
-     * @return $this
-     */
-    public function setImage(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
-        if($this->_flag){
-            if(!empty($this->_config['_options']['src'])){
-                unset($this->_config['_options']['src']);
-            }
-            $this->_phpThumb->setSourceFilename($this->_config['input']); //картинка какую будем сжимать
-        }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
@@ -386,13 +377,11 @@ class phpThumbOn {
      * @return $this
      */
     public function saveOptions(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if($this->_flag){
             foreach($this->_config['_options'] as $item=>$value){
                 $this->_phpThumb->setParameter($item,$value);
             }
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
@@ -403,7 +392,6 @@ class phpThumbOn {
      * @return $this
      */
     public function getCacheFileName(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
         if($this->_flag){
             $w = isset($this->_config['_options']['w']) ? $this->_config['_options']['w'] : 0;
             $h = isset($this->_config['_options']['h']) ? $this->_config['_options']['h'] : 0;
@@ -422,10 +410,19 @@ class phpThumbOn {
             //Кеш файл превьюхи
             $this->_config['_cacheFileName'] = $this->_cache['_cacheFileDir'].$suffix.".".$this->_config['_options']['f'];
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $this;
     }
 
+    protected function CheckQueue(){
+        $flag = false;
+        if(!empty($this->_config['queue']) && file_exists($this->_config['queueClassPath'])){
+            include_once($this->_config['queueClassPath']);
+            if(class_exists(phpThumbOn::QueueClass)){
+                $flag = true;
+            }
+        }
+        return $flag;
+    }
     /**
      * Пытаемся создать превьюху
      *
@@ -433,37 +430,20 @@ class phpThumbOn {
      * @return string путь к превьюхе или пустая строка
      */
     public function getThumb(){
-        //$this->debugTime[__FUNCTION__][0] = microtime(true);
-        $new = false;
         if($this->_flag){
             $out = $this->_config['_cacheFileName'];
-            //Если оригинальный файл был изменен
-            if(file_exists($out) && filemtime($out) < filemtime($this->_config['input'])){
-                unlink($out);
-                //Удаляем другие превьюхи этого же файла
+            if(!file_exists($out) || filemtime($out) < filemtime($this->_config['input'])){
+                //Удаляем существующие превьюхи этого файла
                 $thumbFile = glob($this->_config['_globThumb'],GLOB_BRACE);
                 foreach($thumbFile as $tf){
                     unlink($tf);
                 }
-            }
-            if (!file_exists($out)){
-                // Пробуем создать превьюху
-                if ($this->_phpThumb->GenerateThumbnail()){
-                    // Сохраняем превьюху в кеш-файл
-                    $new = true;
-                    $out = $this->_phpThumb->RenderToFile($out);
+                if($this->CheckQueue()){
+                    $class = phpThumbOn::QueueClass;
+                    $out = $class::add($this, $this->modx);
                 }else{
-                    $out = false;
-                    $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not generate thumbnail');
+                    $out = $this->loadResizer($this->_config['input'], $out);
                 }
-            }
-
-            // Отдаем имя превьюхи предварительно заменив абсолютный путь на относительный
-            if($out){
-                if($new){
-                    chmod($this->_config['_cacheFileName'], octdec($this->_config['new_file_permissions']));
-                }
-                $out = str_replace($this->_config['assetsPath'], $this->_config['assetsUrl'], $this->_config['_cacheFileName']);
             }
         }else{
             $out = false;
@@ -471,11 +451,30 @@ class phpThumbOn {
 
         if($out===false){
             $out = '';
+        }else{
+            $out = str_replace($this->_config['assetsPath'], $this->_config['assetsUrl'], $out);
         }
-        //$this->debugTime[__FUNCTION__][1] = microtime(true);
         return $out;
     }
 
+    public function makeDir($dir){
+        $flag = true;
+        if(!file_exists($dir)){
+            $this->modx->getService('fileHandler','modFileHandler');
+            $dirObj = $this->modx->fileHandler->make($dir, array(),'modDirectory');
+            if(!is_object($dirObj) || !($dirObj instanceof modDirectory)) {
+                $flag = false;
+                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not get class modDirectory');
+            }
+            if($flag){
+                if(!(is_dir($dir) || $dirObj->create())){
+                    $flag = false;
+                    $this->modx->log(modX::LOG_LEVEL_ERROR, "[phpthmbon] Could not create cache directory ".$this->_config['_cachePath']);
+                }
+            }
+        }
+        return $flag;
+    }
     /**
      * Сброс текущих настроек
      *
@@ -483,10 +482,10 @@ class phpThumbOn {
      * @return bool всегда true
      */
     public function flush(){
-        $this->_flag = class_exists('phpthumb');
+        $this->_flag = true;
         $this->_config = array_merge(
             $this->_cfg,
-            array('options'=>null,'input'=>null)
+            array('options'=>null,'input'=>null,'_options'=>null)
         );
         $this->_fileInfo = $this->_phpThumb = null;
         return true;
