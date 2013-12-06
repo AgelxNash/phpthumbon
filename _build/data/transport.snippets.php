@@ -14,16 +14,15 @@
  * @package phpThumbOn
  * @subpackage build
  */
-$snippets = array();
 
-$snippets[0]= $modx->newObject('modSnippet');
-$snippets[0]->fromArray(array(
+$snippet= $modx->newObject('modSnippet');
+$snippet->fromArray(array(
     'id' => 0,
     'name' => PKG_NAME_LOWER,
     'description' => 'Создание превьюх картинок',
     'snippet' => getSnippetContent($sources['source_core'].'/elements/snippets/snippet.phpthumbon.php'),
 ));
-$snippets[0]->setProperties(array(
+$snippet->setProperties(array(
     array(
         'name' => 'input',
         'value' => '',
@@ -38,4 +37,4 @@ $snippets[0]->setProperties(array(
         'lexicon' => 'phpthumbon:properties'
     ))
 );
-return $snippets;
+return $snippet;

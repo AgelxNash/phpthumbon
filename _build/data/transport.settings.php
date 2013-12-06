@@ -67,4 +67,14 @@ $settings['phpthumbon.noimage']->fromArray(array(
     'area' => 'path',
 ),'',true,true);
 
+//Очередь
+$settings['phpthumbon.queue']= $modx->newObject('modSystemSetting');
+$settings['phpthumbon.queue']->fromArray(array(
+    'key' => 'phpthumbon.queue',
+    'value' => '0',
+    'xtype' => 'textfield',
+    'namespace' => 'phpthumbon',
+    'area' => 'general',
+),'',true,true);
+
 return $settings;

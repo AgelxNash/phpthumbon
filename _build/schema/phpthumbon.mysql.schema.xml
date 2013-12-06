@@ -3,9 +3,8 @@
 	<object class="ThumbImages" table="thumb_images" extends="xPDOSimpleObject">
 		<field key="image" dbtype="varchar" precision="255" phptype="string" null="true" index="index" />
 		<field key="cache_image" dbtype="varchar" precision="255" phptype="string" null="true" />
-		<field key="config" dbtype="mediumtext" phptype="string" null="true" />
-		<field key="isend" dbtype="tinyint" precision="1" phptype="integer" null="true" />
-
+		<field key="config" dbtype="mediumtext" phptype="json" null="true" />
+		<field key="isend" dbtype="tinyint" precision="1"  phptype="boolean" attributes="unsigned" null="false" default="0"  />
 		<index alias="image" name="image" primary="false" unique="false" type="BTREE" >
 			<column key="image" length="" collation="A" null="true" />
 		</index>

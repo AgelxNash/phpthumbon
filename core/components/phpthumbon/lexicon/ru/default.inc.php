@@ -26,7 +26,7 @@ $_lang['setting_phpthumbon.cache_dir_desc'] = 'Имя папки с кешем �
 $_lang['setting_phpthumbon.images_dir'] = 'Имя папки с картинками';
 $_lang['setting_phpthumbon.images_dir_desc'] = 'Имя папки относительно директории assets, имя которой будет удаляться из пути в кеш-директории';
 
-$_lang['setting_phpthumbon.quality_names'] = 'Качество картинки по умолчанию';
+$_lang['setting_phpthumbon.quality'] = 'Качество картинки по умолчанию';
 $_lang['setting_phpthumbon.quality_desc'] = 'Если не задано качество картинки в параметрах при вызове сниппета, то будет использоваться это значение';
 
 $_lang['setting_phpthumbon.ext'] = 'Тип картинки по умолчанию';
@@ -37,3 +37,9 @@ $_lang['setting_phpthumbon.noimage_desc'] = 'Если картинка указ�
 
 $_lang['setting_phpthumbon.core_path'] = 'Путь к ядру компонента phpThumbOn';
 $_lang['setting_phpthumbon.core_path_desc'] = 'По умолчанию это /core/components/phpthumbon/';
+
+$_lang['setting_phpthumbon.queue'] = 'Очередь';
+$_lang['setting_phpthumbon.queue_desc'] = 'По умолчанию возможны 3 варианта: 0 - не использовать, 1 - используем очередь и не сжимаем noimage, 2 - используем очередь и сжимаем noimage под нужный размер';
+
+$_lang['setting_phpthumbon.queue_classpath'] = 'Класс QueueThumb';
+$_lang['setting_phpthumbon.queue_classpath_desc'] = 'Путь к файлу с классом QueueThumb';

@@ -3,7 +3,7 @@ class CreateThumbProcessor extends modProcessor{
     public function process(){
         $out = null;
         $modelPath = $this->modx->getOption('phpthumbon.core_path',array(), $this->modx->getOption('core_path').'components/phpthumbon/model/');
-        $this->modx->addPackage("ThumbImages", $modelPath);
+        $this->modx->addPackage("phpthumbon", $modelPath);
         $q = $this->modx->getObject("ThumbImages", 'isend=0');
         if(!empty($q) && $q instanceof ThumbImages){
             if (!$this->modx->loadClass('phpthumb',$this->modx->getOption('core_path').'model/phpthumb/',true,true)) {
@@ -11,7 +11,6 @@ class CreateThumbProcessor extends modProcessor{
                 $out = $this->modx->error->failure('Could not load phpthumb class');
                 $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not load phpthumb class');
             }else{
-
                 $phpThumb = new phpthumb();
                 $phpThumb->setSourceFilename($q->image);
                 $config = $this->modx->fromJSON($q->config);
