@@ -83,6 +83,7 @@ class phpThumbOn {
         $corePath = $this->modx->getOption('phpthumbon.core_path',array(),$this->modx->getOption('core_path').'components/phpthumbon/');
         $assetsPath = $this->modx->getOption('assets_path');
         $assetsUrl = $this->modx->getOption('assets_url');
+
         $this->_cfg = $this->_config = array_merge(array(
             'input' => null,
             'options' => null,
@@ -100,28 +101,34 @@ class phpThumbOn {
             'assetsUrl' => $assetsUrl,
 
             // Папка в которой будут храниться кешированные картинки
-            'cacheDir' => $assetsPath.trim($this->modx->getOption('phpthumbon.cache_dir', $this->_config, 'cache_image'),'/'),
+            'cacheDir' => $assetsPath.trim($this->modx->getOption('phpthumbon.cache_dir', $config, 'cache_image'),'/'),
 
             // подпапка из assets, в которой будут храниться картинки и загрузка картинок в которую будет сопровождаться плагином отчистки кеша
-            'imagesFolder' => trim($this->modx->getOption('phpthumbon.images_dir', $this->_config, 'images'),'/'),
+            'imagesFolder' => trim($this->modx->getOption('phpthumbon.images_dir', $config, 'images'),'/'),
 
             //качество картинки по умолчанию
-            'quality' => $this->modx->getOption('phpthumbon.quality', $this->_config, self::DEFAULT_QUALITY),
+            'quality' => $this->modx->getOption('phpthumbon.quality', $config, self::DEFAULT_QUALITY),
 
             //Тип картинки по умолчанию
-            'ext' => $this->modx->getOption('phpthumbon.ext', $this->_config, self::DEFAULT_EXT),
+            'ext' => $this->modx->getOption('phpthumbon.ext', $config, self::DEFAULT_EXT),
 
             //Права на только что созданный файл
-            'new_file_permissions' => (int)$this->modx->getOption('new_file_permissions',$this->_config,'0664'),
+            'new_file_permissions' => (int)$this->modx->getOption('new_file_permissions',$config,'0664'),
 
             //Очередь
-            'queue' => $this->modx->getOption('phpthumbon.queue', $this->_config, 0),
+            'queue' => $this->modx->getOption('phpthumbon.queue', $config, 0),
 
+			//Что будет возвращено, если произошла ошибка
+			'error_mode' => $this->modx->getOption('phpthumbon.error_mode', $config, 1),
+			
             //Класс очереди
-            'queueClassPath' => $this->modx->getOption('phpthumbon.queue_classpath', $this->_config, trim($corePath,'/').'/queue/QueueThumb.class.php'),
+            'queueClassPath' => $this->modx->getOption('phpthumbon.queue_classpath', $config, trim($corePath,'/').'/queue/QueueThumb.class.php'),
 
+			//Где хранить уже сжатые noimage файлы 
+			'noimage_cache' => $this->modx->getOption('phpthumbon.noimage_cache', $config, trim($assetsUrl,'/').'/components/phpthumbon/cache/'),
+			
             // картинки нет
-            'noimage' => $this->modx->getOption('phpthumbon.noimage', $this->_config, trim($assetsUrl,'/').'/components/phpthumbon/noimage.jpg')
+            'noimage' => $this->modx->getOption('phpthumbon.noimage', $config, trim($assetsUrl,'/').'/components/phpthumbon/noimage.jpg')
         ),$config);
 
         $this->_cfg['options'] = null;
@@ -130,14 +137,20 @@ class phpThumbOn {
         $this->_validateConfig();
     }
 
+    /** Полный массив с конфигом */
+	public function getConfig(){
+        return $this->_config;
+    }
     /**
      * Загрузка ресайзера и сжатие картинки
+     *
      * @param $from оригинальная картинка
      * @param $to куда сохранять
      * @return bool
      */
     public function loadResizer($from, $to){
         $out = false;
+		$new = true;
         if (!$this->modx->loadClass('phpthumb',$this->modx->getOption('core_path').'model/phpthumb/',true,true)) {
             $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not load phpthumb class');
             $this->_flag = false;
@@ -150,26 +163,61 @@ class phpThumbOn {
             // Пробуем создать превьюху
             if ($this->_phpThumb->GenerateThumbnail()){
                 // Сохраняем превьюху в кеш-файл
-                $new = true;
                 $this->_phpThumb->RenderToFile($to);
                 $out = $to;
+				chmod($out, octdec($this->_config['new_file_permissions']));
             }else{
                 $new = false;
-                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not generate thumbnail');
-            }
-
-            // Отдаем имя превьюхи предварительно заменив абсолютный путь на относительный
-            if($out){
-                if($new){
-                    chmod($this->_config['_cacheFileName'], octdec($this->_config['new_file_permissions']));
-                }
+                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not generate thumbnail '.$from);
             }
         }
+		if(!$out){
+			$out = $this->getErrorImage($from, $to);
+		}
         return $out;
     }
+
+    /**
+     * Обработка ошибочных картинок
+     *
+     * @param $from источник (ошибочная картинка)
+     * @param $to получатель (куда должны были сохранить превьюху)
+     * @return bool
+     */
+    protected function getErrorImage($from, $to){
+		$out = false;
+		$method = $this->_config['error_mode'];
+		switch($method){
+			case 2:{ /** Обработка оригинальной картинки */
+				if(copy($from, $to)){
+					chmod($to, octdec($this->_config['new_file_permissions']));
+					$out = $to;
+				}else{
+					$out = $from;
+				}
+				break;
+			}
+			case 1:
+			default:{ /** Обработка noimage картинки */
+				$noImg = $this->_config['noimage'];
+				$out = ($from != $noImg) ? $this->loadResizer($noImg, $to) : $noImg;
+				break;
+			}
+		}
+		return $out;
+	}
+
+    /**
+     * Получение значений из локального конфига
+     *
+     * @param string $key
+     * @param null $default
+     * @return null|string
+     */
     public function getOption($key, $default = null){
         return (is_scalar($key) && isset($this->_config[$key])) ? $this->_config[$key] : $default;
     }
+
     /**
      * Проверка и исправление настроек по умолчанию
      *
@@ -196,6 +244,7 @@ class phpThumbOn {
         }
         return $flag;
     }
+
     /**
      * Обновление настроек класса
      *
@@ -309,6 +358,7 @@ class phpThumbOn {
         return $out;
     }
 
+
     /**
      * Формируем массив параметров для phpThumb из параметра options у сниппета
      *
@@ -317,25 +367,29 @@ class phpThumbOn {
      */
     public function makeOptions(){
         if($this->_flag){
-            $eoptions = is_array($this->_config['options']) ? $this->_config['options'] : explode('&',$this->_config['options']);
-            $this->_config['_options'] = array();
-            foreach ($eoptions as $opt) {
-                $opt = explode('=',$opt);
-                $key = str_replace('[]','',$opt[0]);
-                if (!empty($key)) {
-                    /* allow arrays of options */
-                    if (isset($this->_config['_options'][$key])) {
-                        if (is_string($this->_config['_options'][$key])) {
-                            $this->_config['_options'][$key] = array($this->_config['_options'][$key]);
+            if(!$this->CheckQueue() && is_array($this->_config['options'])){
+                $this->_config['_options'] = $this->_config['options'];
+            }else{
+                $eoptions = is_array($this->_config['options']) ? $this->_config['options'] : explode('&',$this->_config['options']);
+                $this->_config['_options'] = array();
+                foreach ($eoptions as $opt) {
+                    $opt = explode('=',$opt);
+                    $key = str_replace('[]','',$opt[0]);
+                    if (!empty($key)) {
+                        /* allow arrays of options */
+                        if (isset($this->_config['_options'][$key])) {
+                            if (is_string($this->_config['_options'][$key])) {
+                                $this->_config['_options'][$key] = array($this->_config['_options'][$key]);
+                            }
+                            $this->_config['_options'][$key][] = $opt[1];
+                        } else { /* otherwise pass in as string */
+                            $this->_config['_options'][$key] = $opt[1];
                         }
-                        $this->_config['_options'][$key][] = $opt[1];
-                    } else { /* otherwise pass in as string */
-                        $this->_config['_options'][$key] = $opt[1];
                     }
                 }
             }
             //Параметр src игнорируется. Мы работаем только с input
-            if(!empty($this->_config['_options']['src'])){
+            if(isset($this->_config['_options'],$this->_config['_options']['src'])){
                 unset($this->_config['_options']['src']);
             }
         }
@@ -393,26 +447,33 @@ class phpThumbOn {
      */
     public function getCacheFileName(){
         if($this->_flag){
-            $w = isset($this->_config['_options']['w']) ? $this->_config['_options']['w'] : 0;
-            $h = isset($this->_config['_options']['h']) ? $this->_config['_options']['h'] : 0;
-
-            //Уникальный суффикс в имени файла превьюхи
-            //$suffix = '_'.$w.'x'.$h.'_'.substr(md5($this->modx->toJSON($this->_config['_options'])),0,3);
-            $suffix = '_'.$w.'x'.$h.'_'.substr(md5(serialize($this->_config['_options'])),0,3);
-
             //папка в которой лежат превьюхи текущей картинки
-            $this->_cache['_cacheFileDir'] = rtrim($this->_config['_cachePath'],'/').'/'.$this->_pathinfo('filename');
+            $cacheFileDir = rtrim($this->_config['_cachePath'],'/').'/'.$this->_pathinfo('filename');
 
             //Для поиска других превьюх с этого же файла
             //glob("fullfolder_to_cache_image/filename_[0-9]*x[0-9]*_???.{jpeg,gif,bmp,jpg,png}",GLOB_BRACE)
-            $this->_config['_globThumb'] = $this->_cache['_cacheFileDir']."_[0-9]*x[0-9]*_???.{jpeg,gif,bmp,jpg,png}";
+            $this->_config['_globThumb'] = $cacheFileDir."_[0-9]*x[0-9]*_???.{jpeg,gif,bmp,jpg,png}";
 
-            //Кеш файл превьюхи
-            $this->_config['_cacheFileName'] = $this->_cache['_cacheFileDir'].$suffix.".".$this->_config['_options']['f'];
+            $w = isset($this->_config['_options']['w']) ? $this->_config['_options']['w'] : 0;
+            $h = isset($this->_config['_options']['h']) ? $this->_config['_options']['h'] : 0;
+
+            //if(!isset($this->_config['cacheSuffix'], $this->_config['_cacheFileName'])){
+                //Уникальный суффикс в имени файла превьюхи
+                //$suffix = '_'.$w.'x'.$h.'_'.substr(md5($this->modx->toJSON($this->_config['_options'])),0,3);
+                $this->_config['cacheSuffix'] = $w.'x'.$h.'_'.substr(md5(serialize($this->_config['_options'])),0,3);
+
+                //Кеш файл превьюхи
+                $this->_config['_cacheFileName'] = $cacheFileDir . "_". $this->_config['cacheSuffix'] . "." . $this->_config['_options']['f'];
+            //}
         }
         return $this;
     }
 
+    /**
+     * Загрузка класса для обработки очередей
+     *
+     * @return bool
+     */
     protected function CheckQueue(){
         $flag = false;
         if(!empty($this->_config['queue']) && file_exists($this->_config['queueClassPath'])){
@@ -423,6 +484,7 @@ class phpThumbOn {
         }
         return $flag;
     }
+
     /**
      * Пытаемся создать превьюху
      *
@@ -432,19 +494,29 @@ class phpThumbOn {
     public function getThumb(){
         if($this->_flag){
             $out = $this->_config['_cacheFileName'];
-			if(file_exists($out) && $this->_config['input'] != $this->_config['noimage'] && filemtime($out) < filemtime($this->_config['input'])){
-				//Удаляем существующие превьюхи этого файла
-                $thumbFile = glob($this->_config['_globThumb'], GLOB_BRACE);
-                foreach($thumbFile as $tf){
-                    unlink($tf);
-                }
+			$cacheNoImage = $this->_config['noimage_cache'] . $this->_config['cacheSuffix'] . "." . $this->_config['_options']['f'];
+
+            if($this->_config['input'] == $this->_config['noimage']){
+				$this->copyFile($cacheNoImage, $out);
+			}else{
+				if(file_exists($out) && filemtime($out) < filemtime($this->_config['input'])){
+					/** Удаляем существующие превьюхи этого файла */
+					$thumbFile = glob($this->_config['_globThumb'], GLOB_BRACE);
+					foreach($thumbFile as $tf){
+						unlink($tf);
+					}
+				}
 			}
+			
             if(!file_exists($out)){
                 if($this->CheckQueue()){
                     $class = phpThumbOn::QueueClass;
                     $out = $class::add($this, $this->modx);
                 }else{
                     $out = $this->loadResizer($this->_config['input'], $out);
+					if($this->_config['input'] == $this->_config['noimage']){
+						$this->copyFile($out, $cacheNoImage);
+					}
                 }
             }
         }else{
@@ -459,6 +531,28 @@ class phpThumbOn {
         return $out;
     }
 
+    /**
+     * Копирование файла с проверкой на существование оригинального файла и созданием папок
+     *
+     * @param $from источник
+     * @param $to получатель
+     * @return bool статус копирования
+     */
+    protected function copyFile($from, $to){
+		$flag = false;
+		if(file_exists($from) && $this->makeDir(pathinfo($to, PATHINFO_DIRNAME)) && copy($from, $to)){
+			chmod($to, octdec($this->_config['new_file_permissions']));
+			$flag = true;
+		}
+		return $flag;
+	}
+
+    /**
+     * Создание папки
+     *
+     * @param $dir полный путь к папке которую необходимо создать
+     * @return bool
+     */
     public function makeDir($dir){
         $flag = true;
         if(!file_exists($dir)){
@@ -477,6 +571,7 @@ class phpThumbOn {
         }
         return $flag;
     }
+
     /**
      * Сброс текущих настроек
      *

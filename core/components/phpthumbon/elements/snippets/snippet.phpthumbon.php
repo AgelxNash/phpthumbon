@@ -21,4 +21,4 @@ if(!isset($modx->phpThumbOn)){
 if(!($flag = ($modx->phpThumbOn instanceof phpThumbOn))){
     $modx->phpThumbOn = null;
 }
-return $flag ? $modx->phpThumbOn->run($scriptProperties) : '';
+return $flag ? $modx->phpThumbOn->run($scriptProperties) : $modx->getOption('phpthumbon.noimage', $scriptProperties);

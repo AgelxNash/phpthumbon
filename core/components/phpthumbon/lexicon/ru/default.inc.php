@@ -43,3 +43,12 @@ $_lang['setting_phpthumbon.queue_desc'] = 'По умолчанию возмож�
 
 $_lang['setting_phpthumbon.queue_classpath'] = 'Класс QueueThumb';
 $_lang['setting_phpthumbon.queue_classpath_desc'] = 'Путь к файлу с классом QueueThumb';
+
+$_lang['setting_phpthumbon.error_mode'] = 'Класс QueueThumb';
+$_lang['setting_phpthumbon.error_mode_desc'] = 'Путь к файлу с классом QueueThumb';
+
+$_lang['setting_phpthumbon.noimage_cache'] = 'Папка с закешированными noimage файлами';
+$_lang['setting_phpthumbon.noimage_cache_desc'] = 'Путь к папке в которой уже хранятся noimage нужных размеров';
+
+$_lang['setting_phpthumbon.total_queue'] = 'Число обрабатываемых заданий из очереди за 1 раз';
+$_lang['setting_phpthumbon.total_queue_desc'] = 'Не более 10. В случае отсутствия значения у этого параметра устанавливается значение по умолчанию - 1';
