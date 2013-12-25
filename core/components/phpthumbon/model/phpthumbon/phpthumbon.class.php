@@ -432,12 +432,14 @@ class phpThumbOn {
     public function getThumb(){
         if($this->_flag){
             $out = $this->_config['_cacheFileName'];
-            if(!file_exists($out) || filemtime($out) < filemtime($this->_config['input'])){
-                //Удаляем существующие превьюхи этого файла
-                $thumbFile = glob($this->_config['_globThumb'],GLOB_BRACE);
+			if(file_exists($out) && $this->_config['input'] != $this->_config['noimage'] && filemtime($out) < filemtime($this->_config['input'])){
+				//Удаляем существующие превьюхи этого файла
+                $thumbFile = glob($this->_config['_globThumb'], GLOB_BRACE);
                 foreach($thumbFile as $tf){
                     unlink($tf);
                 }
+			}
+            if(!file_exists($out)){
                 if($this->CheckQueue()){
                     $class = phpThumbOn::QueueClass;
                     $out = $class::add($this, $this->modx);
