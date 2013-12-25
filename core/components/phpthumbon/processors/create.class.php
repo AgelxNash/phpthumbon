@@ -48,7 +48,8 @@ class CreateThumbProcessor extends modProcessor{
         $total = &$this->modx->error->total;
         $total = 0;
         do{
-            $this->modx->phpThumbOn->run($this->getProperties());
+            $out = $this->modx->phpThumbOn->run($this->getProperties());
+            $this->_data->set('cache_image', $out);
             $this->_data->set('isend', 1);
             $this->_data->save();
             $out[] = $this->_data->toArray();
