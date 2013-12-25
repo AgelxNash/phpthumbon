@@ -32,7 +32,7 @@ $settings['phpthumbon.quality']= $modx->newObject('modSystemSetting');
 $settings['phpthumbon.quality']->fromArray(array(
     'key' => 'phpthumbon.quality',
     'value' => '96',
-    'xtype' => 'textfield',
+    'xtype' => 'numberfield',
     'namespace' => 'phpthumbon',
     'area' => 'general',
 ),'',true,true);
@@ -72,6 +72,36 @@ $settings['phpthumbon.queue']= $modx->newObject('modSystemSetting');
 $settings['phpthumbon.queue']->fromArray(array(
     'key' => 'phpthumbon.queue',
     'value' => '0',
+    'xtype' => 'numberfield',
+    'namespace' => 'phpthumbon',
+    'area' => 'general',
+),'',true,true);
+
+//Что будет возвращено, если произошла ошибка
+$settings['phpthumbon.error_mode']= $modx->newObject('modSystemSetting');
+$settings['phpthumbon.error_mode']->fromArray(array(
+    'key' => 'phpthumbon.error_mode',
+    'value' => '1',
+    'xtype' => 'numberfield',
+    'namespace' => 'phpthumbon',
+    'area' => 'general',
+),'',true,true);
+
+//Где хранить уже сжатые noimage файлы
+$settings['phpthumbon.noimage_cache']= $modx->newObject('modSystemSetting');
+$settings['phpthumbon.noimage_cache']->fromArray(array(
+    'key' => 'phpthumbon.noimage_cache',
+    'value' => '{assets_path}components/phpthumbon/cache/',
+    'xtype' => 'textfield',
+    'namespace' => 'phpthumbon',
+    'area' => 'path',
+),'',true,true);
+
+//Сниппет генератор кеш имен файлов
+$settings['phpthumbon.make_cachename']= $modx->newObject('modSystemSetting');
+$settings['phpthumbon.make_cachename']->fromArray(array(
+    'key' => 'phpthumbon.make_cachename',
+    'value' => '',
     'xtype' => 'textfield',
     'namespace' => 'phpthumbon',
     'area' => 'general',
