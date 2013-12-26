@@ -125,13 +125,13 @@ class phpThumbOn {
 			'error_mode' => $this->modx->getOption('phpthumbon.error_mode', $config, 1),
 			
             //Класс очереди
-            'queueClassPath' => $this->modx->getOption('phpthumbon.queue_classpath', $config, trim($corePath,'/').'/queue/QueueThumb.class.php'),
+            'queueClassPath' => $this->modx->getOption('phpthumbon.queue_classpath', $config, rtrim($corePath,'/').'/queue/QueueThumb.class.php'),
 
 			//Где хранить уже сжатые noimage файлы 
-			'noimage_cache' => $this->modx->getOption('phpthumbon.noimage_cache', $config, trim($assetsUrl,'/').'/components/phpthumbon/cache/'),
+			'noimage_cache' => $this->modx->getOption('phpthumbon.noimage_cache', $config, rtrim($assetsUrl,'/').'/components/phpthumbon/cache/'),
 			
             // картинки нет
-            'noimage' => $this->modx->getOption('phpthumbon.noimage', $config, trim($assetsUrl,'/').'/components/phpthumbon/noimage.jpg'),
+            'noimage' => $this->modx->getOption('phpthumbon.noimage', $config, rtrim($assetsUrl,'/').'/components/phpthumbon/noimage.jpg'),
 
             'makeCacheName' => $this->modx->getOption('phpthumbon.make_cachename', $config, ''),
         ),$config);
