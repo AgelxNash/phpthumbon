@@ -236,9 +236,10 @@ class phpThumbOn {
         $flag = true;
 
         if(!empty($this->_config['input'])){
-            $this->_config['input'] = preg_replace("#^/#","",$this->_config['input']);
-            if (strpos($this->_config['input'], MODX_BASE_PATH) === false) {
-                $this->_config['input'] = MODX_BASE_PATH . $this->_config['input'];
+            $path = $this->_config['input'];
+            $path = preg_replace("#^/#","",$path);
+            if (strpos($path, ltrim(MODX_BASE_PATH,'/')) === false) {
+                $this->_config['input'] = MODX_BASE_PATH . $path;
             }
         }
 		
