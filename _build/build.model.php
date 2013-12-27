@@ -28,7 +28,7 @@ $manager = $modx->getManager();
 $generator = $manager->getGenerator();
 
 // Remove old model
-rrmdir($sources['model'] . PKG_NAME_LOWER . '/mysql');
+rmdir($sources['model'] . PKG_NAME_LOWER . '/mysql');
 
 // Generate a new one
 $generator->parseSchema($sources['xml'], $sources['model']);
