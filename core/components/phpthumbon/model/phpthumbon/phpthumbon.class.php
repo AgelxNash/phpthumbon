@@ -156,12 +156,12 @@ class phpThumbOn {
     public function loadResizer($from, $to){
         $out = false;
 		$new = true;
-        if (!$this->modx->loadClass('phpthumb',$this->modx->getOption('core_path').'model/phpthumb/',true,true)) {
+        if (!$this->modx->loadClass('modphpthumb',$this->modx->getOption('core_path').'model/phpthumb/',true,true)) {
             $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not load phpthumb class');
             $this->_flag = false;
         }
         if($this->_flag){
-            $this->_phpThumb = new phpthumb();
+            $this->_phpThumb = new modPhpThumb();
             $this->_phpThumb->setSourceFilename($from);
             $this->saveOptions();
 
@@ -173,11 +173,11 @@ class phpThumbOn {
                    chmod($out, octdec($this->_config['new_file_permissions']));
                }else{
                    $new = false;
-                   $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not save thumbnail '.$to);
+                   $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not save thumbnail '.$to.': '.print_r($this->_phpThumb->debugmessages, 1));
                }
             }else{
                 $new = false;
-                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not generate thumbnail '.$from);
+                $this->modx->log(modX::LOG_LEVEL_ERROR,'[phpthumbon] Could not generate thumbnail '.$from.': '.print_r($this->_phpThumb->debugmessages, 1));
             }
         }
 		if(!$out){
