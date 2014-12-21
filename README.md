@@ -1,4 +1,4 @@
-phpthumbon
+phpthumbon [Не поддерживается]
 ==========
 
 Оптимизированный сниппет phpthumbof под MODX Revolution
