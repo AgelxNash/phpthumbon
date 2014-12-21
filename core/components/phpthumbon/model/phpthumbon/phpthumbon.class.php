@@ -161,7 +161,7 @@ class phpThumbOn {
             $this->_flag = false;
         }
         if($this->_flag){
-            $this->_phpThumb = new modPhpThumb();
+            $this->_phpThumb = new modPhpThumb($this->modx, $this->getConfig());
             $this->_phpThumb->setSourceFilename($from);
             $this->saveOptions();
 
