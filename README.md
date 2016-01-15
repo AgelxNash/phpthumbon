@@ -1,6 +1,3 @@
-phpthumbon [Не поддерживается]
+Репозиторий перехал
 ==========
-
-Оптимизированный сниппет phpthumbof под MODX Revolution
-
-Документация: http://blog.agel-nash.ru/addon/phpthumbon.html
+https://github.com/gvozdb/phpthumbon
