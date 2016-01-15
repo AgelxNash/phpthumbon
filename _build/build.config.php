@@ -32,5 +32,5 @@ define('MODX_ASSETS_URL', MODX_BASE_URL . 'assets/');
 define('PKG_NAME','phpThumbOn');
 define('PKG_NAME_LOWER',strtolower(PKG_NAME));
 
-define('PKG_VERSION', '1.3.0');
+define('PKG_VERSION', '1.3.1');
 define('PKG_RELEASE','pl');
