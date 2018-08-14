@@ -153,8 +153,10 @@ class phpThumbOn
         $out = false;
         $new = true;
         if (!$this->modx->loadClass('modphpthumb', $this->modx->getOption('core_path') . 'model/phpthumb/', true, true)) {
-            $this->modx->log(modX::LOG_LEVEL_ERROR, '[phpthumbon] Could not load phpthumb class');
-            $this->_flag = false;
+            if (!$this->modx->loadClass('modphpthumb', $this->modx->getOption('core_path') . 'model/modx/', true, true)) {
+                $this->modx->log(modX::LOG_LEVEL_ERROR, '[phpthumbon] Could not load phpthumb class');
+                $this->_flag = false;
+            }
         }
         if ($this->_flag) {
             $this->_phpThumb = new modPhpThumb($this->modx, $this->getConfig());
