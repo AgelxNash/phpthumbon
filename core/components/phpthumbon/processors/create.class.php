@@ -72,7 +72,7 @@ class CreateThumbProcessor extends modProcessor{
     }
 
     protected function _getObject(){
-        $this->_data = $flag = $this->modx->getObject("ThumbImages", 'isend=0');
+        $this->_data = $flag = $this->modx->getObject("ThumbImages", ['isend' => 0]);
         if(!empty($this->_data) && $this->_data instanceof ThumbImages){
             $this->setProperties(array(
                 'input' => $this->_data->image,
